@@ -1,0 +1,49 @@
+C51 COMPILER V9.01   RAIN                                                                  01/13/2017 11:42:14 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE RAIN
+OBJECT MODULE PLACED IN .\rain.obj
+COMPILER INVOKED BY: D:\KEIL4\C51\BIN\C51.EXE ..\HARDWARE\RAIN\rain.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\HARDWARE\MATRIX
+                    - BUTTONS;..\HARDWARE\OLED;..\HARDWARE\PHOTORESISTANCE;..\HARDWARE\PWM;..\HARDWARE\TEMPERATURE AND HUMIDITY SENSOR;..\OBJ
+                    -;..\SYSTEM\DELAY;..\SYSTEM\STC15W4K32S4;..\SYSTEM\SYS;..\USER;..\OBJ) DEBUG OBJECTEXTEND PRINT(.\rain.lst) TABS(2) OBJEC
+                    -T(.\rain.obj)
+
+line level    source
+
+   1          #include "stc15w4k32s4.h"
+   2          #include "sys.h"
+   3          #include "rain.h"
+   4          
+   5          void RainInit()
+   6          {
+   7   1        P3=0xff;
+   8   1        EA=1;  //开总中断
+   9   1        EX0=EX1=0; //开外部中断
+  10   1        IT0=IT1=1; //跳变沿触发 
+  11   1      }
+  12          
+  13          
+  14          //void exint0() interrupt 0
+  15          //{
+  16          //      clo_move_back();  //利用外部中断检测雨滴传感器的状态
+  17          //      EX0=EX1=0;
+  18          //}
+  19          //void exint1() interrupt 2
+  20          //{
+  21          //      clo_move_back();
+  22          //      EX0=EX1=0;
+  23          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     14    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

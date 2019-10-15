@@ -1,0 +1,9 @@
+改动有以下几个地方：
+1、PWM.C 中断函数内的	
+
+	if(Press_Number()==1)
+	ET0=0;
+						
+2、PWM.C void clo_move_front()与void clo_move_back()函数中的
+
+   speed1=speed2=speed3=speed4=0;

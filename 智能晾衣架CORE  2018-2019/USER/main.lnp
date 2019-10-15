@@ -1,0 +1,11 @@
+"main.obj",
+".\matrix buttons.obj",
+".\oled.obj",
+".\TAHS.obj",
+".\PWM.obj",
+".\rain.obj",
+".\sys.obj",
+".\delay.obj",
+".\RUN.obj" 
+TO "main" 
+RAMSIZE(256) 

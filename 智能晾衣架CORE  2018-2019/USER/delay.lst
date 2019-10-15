@@ -1,0 +1,62 @@
+C51 COMPILER V9.01   DELAY                                                                 01/13/2017 11:42:14 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE DELAY
+OBJECT MODULE PLACED IN .\delay.obj
+COMPILER INVOKED BY: D:\KEIL4\C51\BIN\C51.EXE ..\SYSTEM\DELAY\delay.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\HARDWARE\MATRIX
+                    - BUTTONS;..\HARDWARE\OLED;..\HARDWARE\PHOTORESISTANCE;..\HARDWARE\PWM;..\HARDWARE\TEMPERATURE AND HUMIDITY SENSOR;..\OBJ
+                    -;..\SYSTEM\DELAY;..\SYSTEM\STC15W4K32S4;..\SYSTEM\SYS;..\USER;..\OBJ) DEBUG OBJECTEXTEND PRINT(.\delay.lst) TABS(2) OBJE
+                    -CT(.\delay.obj)
+
+line level    source
+
+   1          #include "stc15w4k32s4.h"
+   2          #include "delay.h"
+   3          #include <intrins.h>
+   4          
+   5          ////////////////////ATTENTION///////////////////
+   6          //   本程序基于STC15W4K32S4-LQFP64S单片机
+   7          //   IO口设置：
+   8          //   左电机：P37,P27   右电机:P21,P45
+   9          //   作者：叶树仁
+  10          //   作者单位：北京理工大学珠海学院
+  11          ////////////////////////////////////////////////
+  12          void delay_1ms()
+  13          {
+  14   1          unsigned char a,b;
+  15   1          for(b=4;b>0;b--)
+  16   1              for(a=113;a>0;a--);
+  17   1      }
+  18          
+  19          void delay_1s(void)   //?? -0.000000000227us
+  20          {
+  21   1          unsigned char a,b,c;
+  22   1          for(c=13;c>0;c--)
+  23   1              for(b=247;b>0;b--)
+  24   1                  for(a=142;a>0;a--);
+  25   1          _nop_();  //if Keil,require use intrins.h
+  26   1      }
+  27          
+  28          void delay_10ms()
+  29          {
+  30   1          unsigned char a,b;
+  31   1          for(b=249;b>0;b--)
+  32   1              for(a=17;a>0;a--);
+  33   1      }
+  34          
+  35          
+  36          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     32    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

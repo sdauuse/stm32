@@ -1,0 +1,76 @@
+C51 COMPILER V9.01   MAIN                                                                  06/23/2017 10:09:41 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\KEIL4\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\HARDWARE\MATRIX BUTTONS;..\HARDW
+                    -ARE\OLED;..\HARDWARE\PHOTORESISTANCE;..\HARDWARE\PWM;..\HARDWARE\TEMPERATURE AND HUMIDITY SENSOR;..\OBJ;..\SYSTEM\DELAY;
+                    -..\SYSTEM\STC15W4K32S4;..\SYSTEM\SYS;..\USER;..\OBJ;..\HARDWARE\RAIN) DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "stc15w4k32s4.h"
+   2          #include "sys.h"
+   3          #include "TAHS.h"
+   4          #include "oled.h"
+   5          #include "PWM.h"
+   6          #include "matrix buttons.h"
+   7          #include "delay.h"
+   8          #include "RUN.h"
+   9          #include "rain.h"
+  10          
+  11          
+  12          
+  13          ////////////////////ATTENTION///////////////////
+  14          //   本程序基于STC15W4K32S4-LQFP64S单片机
+  15          //   作者：叶树仁
+  16          //   
+  17          //   作者单位：北京理工大学珠海学院
+  18          ////////////////////////////////////////////////
+  19          void main()
+  20          {
+  21   1        TAHSInit();   //温湿度传感器初始化    
+  22   1        OLED_Init();  //oled初始化
+  23   1        motorInit();  //电机初始化
+  24   1        RainInit();   //雨滴传感器初始化
+*** WARNING C206 IN LINE 24 OF MAIN.C: 'RainInit': missing function-prototype
+  25   1        P6=0x00;
+  26   1        
+  27   1        
+  28   1        
+  29   1        while(1)
+  30   1        { 
+  31   2          page1();   
+  32   2          RUN();          //操作界面
+  33   2        }
+  34   1      }
+  35          
+  36          
+  37          
+  38          
+  39          
+  40          
+  41          
+  42          
+  43          
+  44          
+  45          
+  46          
+  47          
+  48          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     23    ----
+C51 COMPILER V9.01   MAIN                                                                  06/23/2017 10:09:41 PAGE 2   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

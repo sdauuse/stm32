@@ -1,0 +1,229 @@
+C51 COMPILER V9.01   RUN                                                                   01/13/2017 11:42:14 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE RUN
+OBJECT MODULE PLACED IN .\RUN.obj
+COMPILER INVOKED BY: D:\KEIL4\C51\BIN\C51.EXE ..\OBJ\RUN.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\HARDWARE\MATRIX BUTTONS;..
+                    -\HARDWARE\OLED;..\HARDWARE\PHOTORESISTANCE;..\HARDWARE\PWM;..\HARDWARE\TEMPERATURE AND HUMIDITY SENSOR;..\OBJ;..\SYSTEM\
+                    -DELAY;..\SYSTEM\STC15W4K32S4;..\SYSTEM\SYS;..\USER;..\OBJ) DEBUG OBJECTEXTEND PRINT(.\RUN.lst) TABS(2) OBJECT(.\RUN.obj)
+
+line level    source
+
+   1          #include "stc15w4k32s4.h"
+   2          #include "oled.h"
+   3          #include "matrix buttons.h"
+   4          #include "RUN.h"
+   5          #include "delay.h"
+   6          #include "PWM.h"
+   7          #include "TAHS.h"
+   8          #include "sys.h"
+   9          
+  10          
+  11          ////////////////////ATTENTION///////////////////
+  12          //   ±¾³ÌÐò»ùÓÚSTC15W4K32S4-LQFP64Sµ¥Æ¬»ú
+  13          //   
+  14          //   Ò³ÃæÇý¶¯¹¦ÄÜÎÄ¼þ
+  15          //   ×÷Õß£ºÒ¶Ê÷ÈÊ
+  16          //   ×÷Õßµ¥Î»£º±±¾©Àí¹¤´óÑ§Öéº£Ñ§Ôº
+  17          ////////////////////////////////////////////////
+  18          u8 num;
+  19          
+  20          void RUN()
+  21          {
+  22   1        do
+  23   1        {
+  24   2        //ÏÔÊ¾Ö÷Ò³
+  25   2        //¡°ÖÇÄÜÁÀÒÂ¼Ü¡
+  26   2        //°´3,A¼ÌÐø
+  27   2          OLED_ShowCHinese(16,2,0);
+  28   2          OLED_ShowCHinese(32,2,1);
+  29   2          OLED_ShowCHinese(48,2,2);
+  30   2          OLED_ShowCHinese(64,2,3);
+  31   2          OLED_ShowCHinese(80,2,4);
+  32   2          
+  33   2          OLED_ShowCHinese(24,6,10);
+  34   2          OLED_ShowNum(40,6,3,1,16);
+  35   2          OLED_ShowString(48,6,",");
+  36   2          OLED_ShowChar(56,6,'A');
+  37   2          OLED_ShowCHinese(64,6,5);
+  38   2          OLED_ShowCHinese(80,6,6); 
+  39   2          TAN_test();        //Êª¶È¼ì²â
+  40   2          num = Press_Number();
+  41   2        
+  42   2        }while(num!=4 && num!=3);
+  43   1        
+  44   1        if(num==4)
+  45   1          page2();
+  46   1        if(num==3)
+  47   1          page3();
+  48   1        
+  49   1      }
+  50          
+  51          int page1()
+  52          {
+  53   1        //ÏÔÊ¾Ö÷Ò³
+C51 COMPILER V9.01   RUN                                                                   01/13/2017 11:42:14 PAGE 2   
+
+  54   1        //¡°ÖÇÄÜÁÀÒÂ¼Ü¡
+  55   1        //°´3,A¼ÌÐø
+  56   1        OLED_ShowCHinese(16,2,0);
+  57   1        OLED_ShowCHinese(32,2,1);
+  58   1        OLED_ShowCHinese(48,2,2);
+  59   1        OLED_ShowCHinese(64,2,3);
+  60   1        OLED_ShowCHinese(80,2,4);
+  61   1        
+  62   1        OLED_ShowCHinese(24,6,10);
+  63   1        OLED_ShowNum(40,6,3,1,16);
+  64   1        OLED_ShowString(48,6,",");
+  65   1        OLED_ShowChar(56,6,'A');
+  66   1        OLED_ShowCHinese(64,6,5);
+  67   1        OLED_ShowCHinese(80,6,6); 
+  68   1        
+  69   1        return 0;
+  70   1      }
+  71          
+  72          int page2()
+  73          {
+  74   1        OLED_Clear();
+  75   1        num=0;
+  76   1        //ÏÔÊ¾µÚ¶þÒ³
+  77   1        //ÎÂ¶È
+  78   1        //Êª¶È
+  79   1        //ÈÕÆÚ
+  80   1        //°´A·µ»Ø 
+  81   1        OLED_Clear();
+  82   1        OLED_ShowCHinese(0,2,7);
+  83   1        OLED_ShowCHinese(16,2,9);
+  84   1        
+  85   1        OLED_ShowCHinese(0,0,8);
+  86   1        OLED_ShowCHinese(16,0,9);
+  87   1        
+  88   1      //  OLED_ShowCHinese(0,4,15);
+  89   1      //  OLED_ShowCHinese(16,4,16);
+  90   1          
+  91   1          OLED_ShowCHinese(0,6,10);
+  92   1        //OLED_ShowChar(16,6,'A');
+  93   1        //OLED_ShowCHinese(32,6,5);
+  94   1        //OLED_ShowCHinese(48,6,6);
+  95   1          OLED_ShowString(16,6,"A");
+  96   1          OLED_ShowCHinese(32,6,13);
+  97   1          OLED_ShowCHinese(48,6,14);
+  98   1        
+  99   1      
+ 100   1          while(TAHSshow()!=1 && TAHSshow()!=2);
+ 101   1          
+ 102   1          if(TAHSshow()==2)
+ 103   1          {
+ 104   2            OLED_ShowCHinese(0,6,10);
+ 105   2          //OLED_ShowChar(16,6,'A');
+ 106   2          //OLED_ShowCHinese(32,6,5);
+ 107   2          //OLED_ShowCHinese(48,6,6);
+ 108   2            OLED_ShowString(16,6,"1");
+ 109   2            OLED_ShowCHinese(32,6,13);
+ 110   2            OLED_ShowCHinese(48,6,14);
+ 111   2            
+ 112   2            num=0;
+ 113   2            
+ 114   2            while(num!=1)
+ 115   2            num = Press_Number(); 
+C51 COMPILER V9.01   RUN                                                                   01/13/2017 11:42:14 PAGE 3   
+
+ 116   2            
+ 117   2            num=0;
+ 118   2            
+ 119   2            OLED_Clear();
+ 120   2            return 0;
+ 121   2          }
+ 122   1          
+ 123   1          do
+ 124   1          {
+ 125   2            num = Press_Number(); 
+ 126   2            TAHSshow();
+ 127   2          }while(num!=1 && num!=2 && num!=4);
+ 128   1          
+ 129   1      
+ 130   1          if(num==1)  clo_move_front();
+ 131   1          else if(num==2)  clo_move_back();
+ 132   1          else if(num==4) 
+ 133   1          {
+ 134   2            num = 0;
+ 135   2            OLED_Clear();
+ 136   2            return 0;
+ 137   2          }
+ 138   1        num=0;
+ 139   1      
+ 140   1      
+ 141   1        OLED_Clear();
+ 142   1        return 0;
+ 143   1        
+ 144   1      }
+ 145          
+ 146          int page3()
+ 147          {
+ 148   1        OLED_Clear();
+ 149   1        num=0;
+ 150   1        //ÏÔÊ¾µÚÈýÒ³
+ 151   1        //°´1³öÒÂ¼Ü
+ 152   1        //°´2ÊÕÒÂ¼Ü
+ 153   1        //°´A·µ»Ø
+ 154   1        OLED_ShowCHinese(0,0,10);
+ 155   1        OLED_ShowNum(16,0,2,1,16);
+ 156   1        OLED_ShowCHinese(32,0,17);
+ 157   1        OLED_ShowCHinese(48,0,3);
+ 158   1        OLED_ShowCHinese(64,0,4);
+ 159   1        
+ 160   1        OLED_ShowCHinese(0,2,10);
+ 161   1        OLED_ShowNum(16,2,1,1,16);
+ 162   1        OLED_ShowCHinese(32,2,18);
+ 163   1        OLED_ShowCHinese(48,2,3);
+ 164   1        OLED_ShowCHinese(64,2,4);
+ 165   1        
+ 166   1        OLED_ShowCHinese(24,6,10);
+ 167   1        OLED_ShowString(40,6,"A");
+ 168   1        OLED_ShowCHinese(56,6,13);
+ 169   1        OLED_ShowCHinese(72,6,14);
+ 170   1        
+ 171   1      
+ 172   1          do
+ 173   1          {
+ 174   2            num = Press_Number(); 
+ 175   2          }while(num!=1 && num!=2 && num!=4);
+ 176   1          
+ 177   1          if(num==1)       clo_move_front();
+C51 COMPILER V9.01   RUN                                                                   01/13/2017 11:42:14 PAGE 4   
+
+ 178   1          else if(num==2)  clo_move_back();
+ 179   1          else if(num==4)  
+ 180   1          {
+ 181   2              num=0;
+ 182   2            OLED_Clear();
+ 183   2              return 0;
+ 184   2          }
+ 185   1          num=0;
+ 186   1        
+ 187   1        OLED_Clear();
+ 188   1        return 0;
+ 189   1      }
+ 190          
+ 191          
+ 192          
+ 193          
+ 194          
+ 195          
+ 196          
+ 197          
+ 198          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    698    ----
+   CONSTANT SIZE    =      6    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

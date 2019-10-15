@@ -1,0 +1,303 @@
+C51 COMPILER V9.01   TAHS                                                                  01/13/2017 11:42:14 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE TAHS
+OBJECT MODULE PLACED IN .\TAHS.obj
+COMPILER INVOKED BY: D:\KEIL4\C51\BIN\C51.EXE ..\HARDWARE\TEMPERATURE AND HUMIDITY SENSOR\TAHS.c OPTIMIZE(8,SPEED) BROWS
+                    -E INCDIR(..\HARDWARE\MATRIX BUTTONS;..\HARDWARE\OLED;..\HARDWARE\PHOTORESISTANCE;..\HARDWARE\PWM;..\HARDWARE\TEMPERATURE
+                    - AND HUMIDITY SENSOR;..\OBJ;..\SYSTEM\DELAY;..\SYSTEM\STC15W4K32S4;..\SYSTEM\SYS;..\USER;..\OBJ) DEBUG OBJECTEXTEND PRIN
+                    -T(.\TAHS.lst) TABS(2) OBJECT(.\TAHS.obj)
+
+line level    source
+
+   1          //****************************************************************//
+   2          //     DHT21使用范例 
+   3          //单片机 AT89S52 或 STC89C52RC 
+   4          //功能   串口发送温湿度数据 晶振 11.0592M 波特率 9600 
+   5          //硬件   P2.0口为通讯口连接DHT11,DHT11的电源和地连接单片机的电源和地，单片机串口加MAX232连接电脑 
+   6          //****************************************************************//
+   7          ////////////////////ATTENTION///////////////////
+   8          //   本程序基于STC15W4K32S4-LQFP64S单片机
+   9          //   矩阵键盘的引脚为P60-P67
+  10          //   作者：叶树仁
+  11          //   作者单位：北京理工大学珠海学院
+  12          ////////////////////////////////////////////////
+  13          
+  14          #include "stc15w4k32s4.h"
+  15          #include "intrins.h"
+  16          #include "oled.h"
+  17          #include "sys.h"
+  18          #include "TAHS.h"
+  19          #include "delay.h"
+  20          
+  21          sbit flag=P4^0;
+  22          
+  23          u8  U8FLAG,k;
+  24          u8  U8count,U8temp;
+  25          u8  U8T_data_H,U8T_data_L,U8RH_data_H,U8RH_data_L,U8checkdata;
+  26          u8  U8T_data_H_temp,U8T_data_L_temp,U8RH_data_H_temp,U8RH_data_L_temp,U8checkdata_temp;
+  27          u8  U8comdata;
+  28          u8  outdata[5];  //定义发送的字节数    
+  29          u8  indata[5];
+  30          u8  count, count_r;
+  31          u8  str[5];
+  32          u16 U16temp1,U16temp2;
+  33          
+  34          //void Delay(u16 j)
+  35          //{      u8 i;
+  36          //      for(;j>0;j--)
+  37          //    {   
+  38          //    for(i=0;i<27;i++);
+  39          
+  40          //    }
+  41          //}
+  42          // 
+  43          void delay_20ms(void)   //?? -0.868055555558us
+  44          {
+  45   1          unsigned char a,b,c;
+  46   1          for(c=133;c>0;c--)
+  47   1              for(b=20;b>0;b--)
+  48   1                  for(a=40;a>0;a--);
+  49   1      }
+  50          
+  51          
+  52          void  Delay_30us(void)
+C51 COMPILER V9.01   TAHS                                                                  01/13/2017 11:42:14 PAGE 2   
+
+  53          {
+  54   1         unsigned char a;
+  55   1          for(a=163;a>0;a--);
+  56   1      }
+  57          
+  58          void  COM(void)
+  59          {
+  60   1           u8 i;
+  61   1                
+  62   1            for(i=0;i<8;i++)     
+  63   1            {
+  64   2          
+  65   2            U8FLAG=2; 
+  66   2            while((!P02)&&U8FLAG++);
+  67   2            Delay_30us();
+  68   2            U8temp=0;
+  69   2            if(flag)U8temp=1;
+  70   2            U8FLAG=2;
+  71   2            while((flag)&&U8FLAG++);
+  72   2            //超时则跳出for循环     
+  73   2            if(U8FLAG==1)break;
+  74   2            //判断数据位是0还是1   
+  75   2               
+  76   2            // 如果高电平高过预定0高电平值则数据位为 1 
+  77   2             
+  78   2             U8comdata<<=1;
+  79   2             U8comdata|=U8temp;        //0
+  80   2             }//rof
+  81   1           
+  82   1           
+  83   1        }
+  84          
+  85            //--------------------------------
+  86            //-----湿度读取子程序 ------------
+  87            //--------------------------------
+  88            //----以下变量均为全局变量--------
+  89            //----温度高8位== U8T_data_H------
+  90            //----温度低8位== U8T_data_L------
+  91            //----湿度高8位== U8RH_data_H-----
+  92            //----湿度低8位== U8RH_data_L-----
+  93            //----校验 8位 == U8checkdata-----
+  94            //----调用相关子程序如下----------
+  95            //---- Delay();, Delay_10us();,COM(); 
+  96            //--------------------------------
+  97          
+  98            int RH(void)
+  99            {
+ 100   1          //主机拉低18ms 
+ 101   1           flag=0;
+ 102   1          delay_20ms();
+ 103   1           flag=1;
+ 104   1      
+ 105   1          //总线由上拉电阻拉高 主机延时20us
+ 106   1          Delay_30us();
+ 107   1         //主机设为输入 判断从机响应信号 
+ 108   1      
+ 109   1         //判断从机是否有低电平响应信号 如不响应则跳出，响应则向下运行   
+ 110   1            flag=1;
+ 111   1           if(!flag)     //T !    
+ 112   1           {
+ 113   2             U8FLAG=2;
+ 114   2           //判断从机是否发出 80us 的低电平响应信号是否结束  
+C51 COMPILER V9.01   TAHS                                                                  01/13/2017 11:42:14 PAGE 3   
+
+ 115   2             while((!flag)&&U8FLAG++);
+ 116   2             U8FLAG=2;
+ 117   2           //判断从机是否发出 80us 的高电平，如发出则进入数据接收状态
+ 118   2             while((flag)&&U8FLAG++);
+ 119   2           //数据接收状态    
+ 120   2             COM();
+ 121   2             U8RH_data_H_temp=U8comdata;
+ 122   2             COM();
+ 123   2             U8RH_data_L_temp=U8comdata;
+ 124   2             COM();
+ 125   2             U8T_data_H_temp=U8comdata;
+ 126   2             COM();
+ 127   2             U8T_data_L_temp=U8comdata;
+ 128   2             COM();
+ 129   2             U8checkdata_temp=U8comdata;
+ 130   2             flag=1;
+ 131   2           //数据校验 
+ 132   2            
+ 133   2             U8temp=(U8T_data_H_temp+U8T_data_L_temp+U8RH_data_H_temp+U8RH_data_L_temp);
+ 134   2             if(U8temp==U8checkdata_temp)
+ 135   2             {
+ 136   3                U8RH_data_H=U8RH_data_H_temp;
+ 137   3                U8RH_data_L=U8RH_data_L_temp;
+ 138   3                U8T_data_H=U8T_data_H_temp;
+ 139   3                U8T_data_L=U8T_data_L_temp;
+ 140   3                U8checkdata=U8checkdata_temp;
+ 141   3             }//fi
+ 142   2           }//fi
+ 143   1          if(U8RH_data_H!=0&&U8T_data_H!=0)
+ 144   1           return 1;
+ 145   1          else return 0;
+ 146   1        }
+ 147          ////////////////////////////////////////////////////////  
+ 148          //函数名:TAHSInit
+ 149          //函数作用：初始化温湿度传感器
+ 150          //函数备注：  
+ 151          ////////////////////////////////////////////////////////  
+ 152          void TAHSInit()
+ 153          {
+ 154   1        OLED_Clear();
+ 155   1        CLK_DIV =0x40;
+ 156   1      
+ 157   1      }
+ 158          
+ 159          ////////////////////////////////////////////////////////  
+ 160          //函数名:TAHSshow
+ 161          //函数作用:显示温湿度函数
+ 162          //函数备注：  
+ 163          ////////////////////////////////////////////////////////
+ 164          u8 TAHSshow()
+ 165          {
+ 166   1          u8 time=0;
+ 167   1          RH();
+ 168   1          while(RH()!=1 && time <=100)
+ 169   1          {
+ 170   2            time++;
+ 171   2            OLED_ShowString(0,4,"Being received..");
+ 172   2          }
+ 173   1          if(time>100)
+ 174   1          {
+ 175   2            OLED_Clear();
+ 176   2            OLED_ShowString(0,2,"received failed");
+C51 COMPILER V9.01   TAHS                                                                  01/13/2017 11:42:14 PAGE 4   
+
+ 177   2            delay_1s();
+ 178   2            delay_1s();
+ 179   2            delay_1s();
+ 180   2            delay_1s();
+ 181   2                  
+ 182   2            OLED_Clear();
+ 183   2            
+ 184   2            OLED_ShowString(0,2,"try again..");
+ 185   2            delay_1s();
+ 186   2            delay_1s();
+ 187   2            delay_1s();
+ 188   2            delay_1s();
+ 189   2            
+ 190   2            OLED_Clear();
+ 191   2                
+ 192   2            return 2;
+ 193   2          }
+ 194   1          time=0;
+ 195   1          OLED_Clear();
+ 196   1      
+ 197   1          OLED_ShowCHinese(0,0,8);
+ 198   1          OLED_ShowCHinese(16,0,9);
+ 199   1          OLED_ShowNum(64,0,U8RH_data_H,2,16);//显示湿度整数
+ 200   1          OLED_ShowString(80,0,".");
+ 201   1          OLED_ShowNum(96,0,U8RH_data_L,2,16);//显示湿度小数
+ 202   1      
+ 203   1          OLED_ShowCHinese(0,2,7);
+ 204   1          OLED_ShowCHinese(16,2,9);
+ 205   1          OLED_ShowNum(64,2,U8T_data_H,2,16); //显示温度整数
+ 206   1          OLED_ShowString(80,2,".");
+ 207   1          OLED_ShowNum(96,2,U8T_data_L,2,16); //显示温度小数
+ 208   1      
+ 209   1          //OLED_ShowString(32,4,"2017");
+ 210   1          
+ 211   1          OLED_ShowString(0,4,"successed");
+ 212   1        
+ 213   1          return 1;
+ 214   1      }
+ 215          ////////////////////使用范例//////////////////////////////////////////////  
+ 216          //----------------------------------------------
+ 217          //main()功能描述:  AT89C51  11.0592MHz  串口发 
+ 218          //送温湿度数据,波特率 9600 
+ 219          //----------------------------------------------
+ 220          //void main()
+ 221          //{
+ 222          //  U8  i,j;
+ 223          //  
+ 224          //  //uchar str[6]={"RS232"};
+ 225          //  /* 系统初始化 */
+ 226          //  OLED_Init();
+ 227          //
+ 228          //  TMOD = 0x20;    //定时器T1使用工作方式2
+ 229          //  TH1 = 253;        // 设置初值
+ 230          //  TL1 = 253;
+ 231          //  TR1 = 1;          // 开始计时
+ 232          //  SCON = 0x50;    //工作方式1，波特率9600bps，允许接收   
+ 233          //  ES = 1;
+ 234          //  EA = 1;           // 打开所以中断   
+ 235          //  TI = 0;
+ 236          //  RI = 0;
+ 237          //  SendData(str);   //发送到串口 
+ 238          //  Delay(1);         //延时100US（12M晶振)
+C51 COMPILER V9.01   TAHS                                                                  01/13/2017 11:42:14 PAGE 5   
+
+ 239          //  OLED_Clear();
+ 240          //  while(1)
+ 241          //  {  
+ 242          //
+ 243          //     //------------------------
+ 244          //     //调用温湿度读取子程序 
+ 245          //      RH();
+ 246          //
+ 247          //  
+ 248          //    
+ 249          //    OLED_ShowString(24,0,"SUREN");
+ 250          //
+ 251          //    OLED_ShowCHinese(0,2,2);   //湿
+ 252          //    OLED_ShowCHinese(16,2,1);  //度
+ 253          //    OLED_ShowNum(32,2,U8RH_data_H,3,16);//显示湿度整数
+ 254          ////      OLED_ShowString(40,2,".");
+ 255          ////    OLED_ShowNum(,2,U8RH_data_L,3,16);//显示湿度小数
+ 256          //
+ 257          //    OLED_ShowCHinese(0,4,0);   //温
+ 258          //    OLED_ShowCHinese(16,4,1);  //度
+ 259          //    OLED_ShowNum(32,4,U8T_data_H,3,16); //显示温度整数
+ 260          ////    OLED_ShowString(40,4,".");
+ 261          ////    OLED_ShowNum(48,4,U8T_data_L,3,16); //显示温度小数
+ 262          //
+ 263          //    OLED_ShowCHinese(0,6,3);   //日
+ 264          //    OLED_ShowCHinese(16,6,4);  //期
+ 265          //    OLED_ShowString(40,6,"2016/7/20");
+ 266          //
+ 267          //    Delay(50000);
+ 268          //  }
+ 269          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    467    ----
+   CONSTANT SIZE    =     57    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     36       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

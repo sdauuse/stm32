@@ -1,0 +1,371 @@
+C51 COMPILER V9.01   PWM                                                                   01/13/2017 11:42:14 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE PWM
+OBJECT MODULE PLACED IN .\PWM.obj
+COMPILER INVOKED BY: D:\KEIL4\C51\BIN\C51.EXE ..\HARDWARE\PWM\PWM.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\HARDWARE\MATRIX B
+                    -UTTONS;..\HARDWARE\OLED;..\HARDWARE\PHOTORESISTANCE;..\HARDWARE\PWM;..\HARDWARE\TEMPERATURE AND HUMIDITY SENSOR;..\OBJ;.
+                    -.\SYSTEM\DELAY;..\SYSTEM\STC15W4K32S4;..\SYSTEM\SYS;..\USER;..\OBJ) DEBUG OBJECTEXTEND PRINT(.\PWM.lst) TABS(2) OBJECT(.
+                    -\PWM.obj)
+
+line level    source
+
+   1          #include "stc15w4k32s4.h"
+   2          #include "sys.h"
+   3          #include "PWM.h"
+   4          #include "delay.h"
+   5          #include "oled.h"
+   6          #include "matrix buttons.h"
+   7          #include <math.h>
+   8          
+   9          ////////////////////ATTENTION///////////////////
+  10          //   本程序基于STC15W4K32S4-LQFP64S单片机
+  11          //   IO口设置：
+  12          //   左电机：P01,P02   右电机:P03,P04
+  13          //   enable1=P00;
+  14          //   enable2=P05;
+  15          //   左前限位开关  P10
+  16          //   左后限位开关  P12
+  17          //   右前限位开关  P11
+  18          //   右后限位开关  P13
+  19          //   作者：叶树仁
+  20          //   作者单位：北京理工大学珠海学院
+  21          ////////////////////////////////////////////////
+  22          
+  23          #define PWMperiod 100  //PWM周期，1000即0.1S为一个周期
+  24          #define Timer_InitValue_T4H  0x9c   //计时器初值，9c9c为定时100US
+  25          #define Timer_InitValue_T4L  0x9c
+  26          bit FLAG1=0;
+  27          u8 rotatetime=0;
+  28          /////////////////////////////////////////////////
+  29          sbit en1=P0^5; /* L298的Enable A */ 
+  30          sbit en2=P0^0; /* L298的Enable B */ 
+  31          sbit speed1=P0^4; /* L298的Input 1 */ 
+  32          sbit speed2=P0^3; /* L298的Input 2 */ 
+  33          sbit speed3=P0^1; /* L298的Input 3 */ 
+  34          sbit speed4=P0^2; /* L298的Input 4 */
+  35          //sbit INT1 = P3^3;
+  36          
+  37          u8 m1=0;  /* 电机1速度值 */ 
+  38          u8 m2=0; /* 电机2速度值 */ 
+  39          u8 tmp1,tmp2; /* 电机当前速度值 */ 
+  40          u8 speed;  //设定最高车速
+  41          /////////////////////////////////////////////////
+  42          
+  43          
+  44          u8 Left_speedcontrol;
+  45          u8 Right_speedcontrol;
+  46          u16 motor_Leftspeed;
+  47          u16 motor_Rightspeed;
+  48          ////////////////////////////////////////////////
+  49          //函数名:motorInit
+  50          //函数作用：初始化电机驱动
+  51          //函数备注：电机占用T4定时器
+  52          ////////////////////////////////////////////////
+C51 COMPILER V9.01   PWM                                                                   01/13/2017 11:42:14 PAGE 2   
+
+  53          void motorInit()      
+  54          {
+  55   1      //  P3M0 |= (0<<7);       //设置P37工作模式为准双向口
+  56   1      //  P3M1 |= (0<<7);
+  57   1      //  P2M0 |= (0<<7);       //设置P27工作模式为准双向口
+  58   1      //  P2M1 |= (0<<7);
+  59   1      
+  60   1      //  P2M0 |= (0<<1);       //设置P21工作模式为准双向口
+  61   1      //  P2M1 |= (0<<1);
+  62   1      //  P4M0 |= (0<<5);       //设置P45工作模式为准双向口
+  63   1      //  P4M1 |= (0<<5);
+  64   1        
+  65   1      //  T4T3M &= 0x0f;       //初始化T4T3M寄存器的T4部分
+  66   1      //   T4H  = Timer_InitValue_T4H;    //装入定时器的初值//自动固定为16位自动重装模式
+  67   1      //   T4L  = Timer_InitValue_T4L;    //定时为100US     
+  68   1      //   IE2  = 1<<6;        //定时器4允许中断                                                
+  69   1      //  T4T3M |= (1<<7); ;      //启动定时器4
+  70   1      //   EA   = 1;           //开中断
+  71   1          TMOD=0x02; /* 设定T0的工作模式为2 */ 
+  72   1          TH0=0x9B; /* 装入定时器的初值 */ 
+  73   1          TL0=0x9B; 
+  74   1            
+  75   1      //    INT1 = 1;  //开启外部中断（INT1 P33）
+  76   1      //    IT1  = 0;
+  77   1      //    EX1  = 1;
+  78   1          
+  79   1          EA=1; /* 开中断 */ 
+  80   1          ET0=1; /* 定时器0允许中断 */                                                
+  81   1          TR0=1; /* 启动定时器0 */ 
+  82   1          right_front_limit = 1;
+  83   1          left_front_limit  = 1;
+  84   1          right_beh_limit   = 1;
+  85   1          left_beh_limit    = 1;
+  86   1          
+  87   1      }
+  88          
+  89          ////////////////////////////////////////////////
+  90          //函数名:motorPower
+  91          //函数作用：电机驱动函数
+  92          //函数备注：  
+  93          ////////////////////////////////////////////////
+  94          //void motorPower(u16 Leftspeed,u16 Rightspeed)
+  95          //{
+  96          //  #ifdef USE_OLED
+  97          //  //如果输入占空比不符合规定，则重新输入
+  98          //  if(abs(*motor_Leftspeed)>PWMperiod && abs(*motor_Rightspeed)>PWMperiod)
+  99          //  {
+ 100          //    OLED_ShowString(0,0,"motor speed error");
+ 101          //    OLED_ShowString(0,2,"please enter new value");
+ 102          //    OLED_ShowString(0,6,"FOR LEFT MOTOR:");
+ 103          //    *motor_Leftspeed = martix_button_getchar8bit();
+ 104          //    OLED_ShowString(0,0,"L:       R:      ");
+ 105          //    OLED_ShowNum(15,0,*motor_Leftspeed,2,16);
+ 106          //    *motor_Rightspeed = martix_button_getchar8bit();
+ 107          //    OLED_ShowNum(50,0,*motor_Rightspeed,2,16);
+ 108          //    OLED_ShowString(0,6,"OK,PLEASE ENTER #");
+ 109          //    while(Press_Number()!='#');
+ 110          //    clo_move();   //函数嵌套调用
+ 111          //  }
+ 112          //  #endif
+ 113            ////////////////////////////////////////////////
+ 114          //  if(abs(Leftspeed)<PWMperiod && abs(Rightspeed)<PWMperiod)
+C51 COMPILER V9.01   PWM                                                                   01/13/2017 11:42:14 PAGE 3   
+
+ 115          //  {
+ 116          //    Left_speedcontrol=abs(Leftspeed);
+ 117          //    Right_speedcontrol=abs(Rightspeed);
+ 118          //    if(motor_Leftspeed>0 && motor_Rightspeed>0)
+ 119          //    {        
+ 120          //      MOTOR1_LEFT = 1;
+ 121          //      MOTOR1_RIGHT= 0;
+ 122          //      MOTOR2_LEFT = 1;
+ 123          //      MOTOR2_RIGHT= 0;
+ 124          //    }
+ 125          //    else if(motor_Leftspeed<0 && motor_Rightspeed>0)
+ 126          //    {
+ 127          //      MOTOR1_LEFT = 0;
+ 128          //      MOTOR1_RIGHT= 1;
+ 129          //      MOTOR2_LEFT = 1;
+ 130          //      MOTOR2_RIGHT= 0;
+ 131          //    }
+ 132          //    else if(motor_Leftspeed>0 && motor_Rightspeed<0)
+ 133          //    {
+ 134          //      MOTOR1_LEFT = 1;
+ 135          //      MOTOR1_RIGHT= 0;
+ 136          //      MOTOR2_LEFT = 0;
+ 137          //      MOTOR2_RIGHT= 1;
+ 138          //    }
+ 139          //    else if(motor_Leftspeed<0 && motor_Rightspeed<0)
+ 140          //    {
+ 141          //      MOTOR1_LEFT = 0;
+ 142          //      MOTOR1_RIGHT= 1;
+ 143          //      MOTOR2_LEFT = 0;
+ 144          //      MOTOR2_RIGHT= 1;
+ 145          //    }
+ 146          //  }
+ 147          //}
+ 148          
+ 149          ////////////////////////////////////////////////
+ 150          //函数名:TIMER4_Routine
+ 151          //函数作用：PWM中断服务函数
+ 152          //函数备注：  
+ 153          ////////////////////////////////////////////////
+ 154          void TIMER0_Routine() interrupt TIMER0_VECTOR 
+ 155          {
+ 156   1          if(rotatetime==0) /* 1个PWM周期完成后才会接受新数值 */ 
+ 157   1        { 
+ 158   2          tmp1=m1; 
+ 159   2          tmp2=m2; 
+ 160   2        } 
+ 161   1        if(rotatetime<tmp1) en1=1; 
+ 162   1        else en1=0; /* 产生电机1的PWM信号 */ 
+ 163   1        if(rotatetime<tmp2) en2=1; 
+ 164   1        else en2=0; /* 产生电机2的PWM信号 */ 
+ 165   1        rotatetime++; 
+ 166   1        if(rotatetime>=100) 
+ 167   1        rotatetime=0; /* 1个PWM信号由100次中断产生 */ 
+ 168   1        
+ 169   1        if(Press_Number()==1)
+ 170   1          ET0=0;
+ 171   1        
+ 172   1        ////////////////////////////////////////////////////////
+ 173   1      //  if(rotatetimes<Left_speedcontrol)//产生电机1的PWM信号`1`
+ 174   1      //  enable1=1;
+ 175   1      //  else
+ 176   1      //  enable1=0;
+C51 COMPILER V9.01   PWM                                                                   01/13/2017 11:42:14 PAGE 4   
+
+ 177   1      //  
+ 178   1      //  if(rotatetimes<Right_speedcontrol)//产生电机2的PWM信号
+ 179   1      //  enable2=1;
+ 180   1      //  else
+ 181   1      //  enable2=0;
+ 182   1      //  
+ 183   1      //  rotatetimes++;
+ 184   1      //  
+ 185   1      //  if(rotatetimes>=PWMperiod)//一个周期以后循环次数标志回0
+ 186   1      //  rotatetimes = 0;
+ 187   1      }
+ 188          
+ 189          ////////////////////////////////////////////////
+ 190          //函数名:clo_move_front
+ 191          //函数作用: 使衣架移动程序
+ 192          //函数输入：u8 dis,u16 left,u16 right
+ 193          //参数作用:dis 定义参数移动的距离  left 左电机速度 right 右电机速度
+ 194          ////////////////////////////////////////////////
+ 195          void clo_move_front()
+ 196          {
+ 197   1        ET0=1;
+ 198   1        OLED_Clear();
+ 199   1        OLED_ShowString(0,2,"PLEASE WAIT");
+ 200   1        OLED_ShowString(0,4,"PRESS 1 TO STOP");
+ 201   1        en1=en2=1;
+ 202   1        do
+ 203   1        {
+ 204   2          motorPower(33,95);
+ 205   2        }while(right_front_limit!=0 && left_front_limit!=0);
+ 206   1        
+ 207   1        while(right_front_limit!=0)
+ 208   1        {
+ 209   2          en1=0;  
+ 210   2          motorPower(0,95);
+ 211   2        }
+ 212   1        
+ 213   1        while(left_front_limit!=0)
+ 214   1        {
+ 215   2          en2=0;
+ 216   2          motorPower(33,0);
+ 217   2        }
+ 218   1        en1=en2=0;
+ 219   1        
+ 220   1        speed1=speed2=speed3=speed4=0;
+ 221   1        
+ 222   1        OLED_Clear();
+ 223   1        OLED_ShowString(0,4,"SUCCESS");
+ 224   1        delay_1s();
+ 225   1        OLED_Clear();
+ 226   1        FLAG1=1;
+ 227   1        EX0=EX1=1;
+ 228   1        ET0=0;
+ 229   1      }
+ 230          
+ 231          ////////////////////////////////////////////////
+ 232          //函数名:clo_move_back
+ 233          //函数作用：使衣架移动程序
+ 234          //函数输入：u8 dis,u16 left,u16 right
+ 235          //参数作用:dis 定义参数移动的距离  left 左电机速度 right 右电机速度
+ 236          ////////////////////////////////////////////////
+ 237          void clo_move_back()
+ 238          {
+C51 COMPILER V9.01   PWM                                                                   01/13/2017 11:42:14 PAGE 5   
+
+ 239   1      //  if(right_beh_limit!=0 && left_beh_limit!=0)
+ 240   1      //  while(1)
+ 241   1      //  {
+ 242   1      //    if(right_beh_limit!=0)
+ 243   1      //    {
+ 244   1      //      motorPower(-93,0);
+ 245   1      //    }
+ 246   1      //    if(left_beh_limit!=0)
+ 247   1      //    {
+ 248   1      //      motorPower(0,90);
+ 249   1      //    }
+ 250   1      //    if(right_beh_limit!=0 && left_beh_limit!=0)
+ 251   1      //      break;
+ 252   1      //  }
+ 253   1        ET0=1;
+ 254   1        OLED_Clear();
+ 255   1        OLED_ShowString(0,4,"PLEASE WAIT");
+ 256   1        en1=en2=1;
+ 257   1        do
+ 258   1        {
+ 259   2          motorPower(-30,-95);
+ 260   2        }while(right_beh_limit!=0 && left_beh_limit!=0);
+ 261   1        
+ 262   1        while(right_beh_limit!=0)
+ 263   1        {
+ 264   2          en1=0;
+ 265   2          motorPower(0,-95);
+ 266   2        }
+ 267   1        
+ 268   1        while(left_beh_limit!=0)
+ 269   1        {
+ 270   2          en2=0;
+ 271   2          motorPower(-30,0);
+ 272   2        }
+ 273   1        en1=en2=0;
+ 274   1        
+ 275   1        speed1=speed2=speed3=speed4=0;
+ 276   1        
+ 277   1        OLED_Clear();
+ 278   1        OLED_ShowString(0,4,"SUCCESS");
+ 279   1        delay_1s();
+ 280   1        OLED_Clear();
+ 281   1        rain1=rain2=1;
+ 282   1        FLAG1=0;
+ 283   1        ET0=0;
+ 284   1      }
+ 285          ////////////////////////////////////////////////
+ 286          //函数名:motorPower
+ 287          //函数作用：电机驱动函数
+ 288          //函数备注：  
+ 289          ////////////////////////////////////////////////
+ 290          void motorPower(char leftspeed, char rightspeed) 
+ 291          {
+ 292   1      
+ 293   1        if(rightspeed>=-100 && rightspeed<=100) 
+ 294   1        { 
+ 295   2          m2=abs(rightspeed); /* 电机1的速度控制 */ 
+ 296   2          if(rightspeed<0) /* 电机1的方向控制 */ 
+ 297   2          { 
+ 298   3            speed3=0; 
+ 299   3            speed4=1; 
+ 300   3          } 
+C51 COMPILER V9.01   PWM                                                                   01/13/2017 11:42:14 PAGE 6   
+
+ 301   2          else 
+ 302   2          { 
+ 303   3            speed3=1; 
+ 304   3            speed4=0; 
+ 305   3          } 
+ 306   2        } 
+ 307   1        if(leftspeed>=-100 && leftspeed<=100) 
+ 308   1        { 
+ 309   2          m1=abs(leftspeed); /* 取速度的绝对值 */ 
+ 310   2          if(leftspeed<0) /* 速度值为负则反转 */ 
+ 311   2          { 
+ 312   3            speed1=0; 
+ 313   3            speed2=1; 
+ 314   3          } 
+ 315   2          else /* 不为负数则正转 */ 
+ 316   2          { 
+ 317   3            speed1=1; 
+ 318   3            speed2=0; 
+ 319   3          } 
+ 320   2        } 
+ 321   1      } 
+ 322          
+ 323          
+ 324          
+ 325          
+ 326          
+ 327          
+ 328          
+ 329          
+ 330          
+ 331          
+ 332          
+ 333          
+ 334          
+ 335          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    463    ----
+   CONSTANT SIZE    =     36    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
